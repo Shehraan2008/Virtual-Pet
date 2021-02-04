@@ -1,96 +1,118 @@
-// Declaring Objects
-let dog, happyDog, database, foodS, foodStock;
-let xNum = foodS;
-let numberOfFood, hour;
+let database, dog, dog1, dog2; // Dog and Database
+let feed, add, food, position;
 let input, ownerName, dogName, input1;
+let feedTime, lastFeed;
+let numberOfFood;
 
-// Loading Images
+// Loading Images and Sound
 function preload() {
-  dogImage = loadImage("images/dogImg.png");
-  happyDog = loadImage("images/dogImg1.png");
+  dogImg1 = loadImage("images/dogImg.png");
+  dogImg2 = loadImage("images/dogImg1.png");
   // woof = loadSound("bark.mp3");
 }
 
 function setup() {
-  // Database
+  // Canvas and DataBase
+  const canvas = createCanvas(900, 500);
   database = firebase.database();
 
-  input = select("#name");
-  input2 = select("#dogName");
-
-  var button = select("#submit");
-  button.mousePressed(changeName);
-
-  // Canvas
-  const canvas = createCanvas(700, 500);
-
-  // Objects and Sprites
-  dog = createSprite(350, 350, 50, 50);
-  dog.addImage("dog", dogImage);
+  // Dog
+  dog = createSprite(550, 250, 10, 10);
+  dog.addImage(dogImg1);
   dog.scale = 0.2;
 
-  // Fetching FoodStock from database
-  foodStock = database.ref("Food");
-  foodStock.on("value", readStock, catchError);
+  // Food
+  food = new Food();
+
+  // DogFood for the DataBase
+  let dogFood = database.ref("Food");
+  dogFood.on(
+    "value",
+    (data) => {
+      // Getting the Data
+      position = data.val();
+      food.updateFoodStock(position);
+    },
+    (error) => {
+      // Error Handling
+      console.error(error);
+    }
+  );
+  // Interface
+  input = select("#name");
+  input2 = select("#dogName");
+  let button = select("#submit");
+  button.mousePressed(changeName);
+
+  // Fedding Food Button
+  feed = createButton("Feed " + input2.value());
+  feed.position(470, 300);
+  feed.mousePressed(feedDog);
+
+  // Adding Food Button
+  add = createButton("Add Food");
+  add.position(600, 300);
+  add.mousePressed(addDogFood);
 }
 
 function draw() {
-  // background
+  // Background
   background(46, 139, 87);
-  // Informaton about the Dog.
+
+  // Some Annottions
   fill("white");
   textSize(24);
   textFont("VT323");
-  text("🥛 Milk Bottles Left: " + numberOfFood, 10, 50);
   text(
     "Hi " + ownerName + ", I am " + dogName + " your Virtual Pet 🐕",
-    15,
-    100
+    30,
+    30
   );
 
-  // Draw the Sprites
-  drawSprites();
+  // Displaying the Food
+  food.display();
 
+  // Interacting wth dog
   if (mousePressedOver(dog)) {
     // playSound(woof);
+    console.log("woof");
   }
-}
 
-// Adding Functions when Key is Pressed.
-function keyPressed() {
-  if (keyCode === UP_ARROW) {
-    dog.addImage("happyDog", happyDog);
-    writeStock(foodS);
-  }
-}
-
-// Call back Functions fro the data
-function readStock(data) {
-  foodS = data.val();
+  // Drawing he Sprites
+  drawSprites();
 }
 
 // Reducing the Value fo Food.
 function writeStock(x) {
-  database.ref("/").update({
-    Food: x - 1,
+  if (x > 0) {
+    x = x - 1;
+  } else {
+    x = 0;
+  }
+  database.ref("/").set({
+    Food: foodS,
   });
-  if (x <= 0) {
-    database.ref("/").update({
-      Food: 0,
-    });
-  }
-  if (keyDown("B")) {
-    database.ref("/").update({
-      Food: 20,
-    });
-  }
   numberOfFood = x;
 }
 
-// Error handling
-function catchError(error) {
-  console.error(error);
+// Adding the Dog Food Function
+function addDogFood() {
+  position++;
+  database.ref("/").update({
+    Food: position,
+  });
 }
+
+// Feeding the Dog Function
+function feedDog() {
+  dog.addImage(dogImg2);
+  food.updateFoodStock(food.getFoodStock() - 1);
+  database.ref("/").update({
+    Food: food.getFoodStock(),
+    feedTime: hour(),
+  });
+}
+
 // Naming
 function changeName() {
   ownerName = input.value();
